@@ -18,6 +18,7 @@ const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   PORT: parseInt(process.env.PORT || "4000", 10),
   CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173",
+  GATE_ADMIN_EMAIL: process.env.GATE_ADMIN_EMAIL || "udaychauhan246r@gmail.com",
   SOCKET_ORIGIN:
     process.env.SOCKET_ORIGIN ||
     process.env.CLIENT_URL ||
