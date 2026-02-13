@@ -12,7 +12,7 @@ const Payment = require('../models/payment');
 const USER_SAFE_DATA = "firstName lastName photoUrl age gender emailId about skills";
 
 // Get received connection requests
-userRouter.get("/requests/received", userAuth, async(req, res) => {
+userRouter.get("/requests/received", userAuth, async (req, res) => {
     try {
         const loggedInUser = req.user;
         const connectionRequests = await ConnectionRequest.find({
@@ -37,14 +37,14 @@ userRouter.get("/connections", userAuth, async (req, res) => {
         const connectionRequests = await ConnectionRequest.find({
             $or: [
                 { toUserId: loggedInUser._id, status: "accepted" },
-                { fromUserId: loggedInUser._id, status: "accepted"},
+                { fromUserId: loggedInUser._id, status: "accepted" },
             ],
         })
-        .populate("fromUserId", USER_SAFE_DATA)
-        .populate("toUserId", USER_SAFE_DATA);
+            .populate("fromUserId", USER_SAFE_DATA)
+            .populate("toUserId", USER_SAFE_DATA);
 
         const data = connectionRequests.map((row) => {
-            if(row.fromUserId._id.toString() === loggedInUser._id.toString()) {
+            if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
                 return row.toUserId;
             }
             return row.fromUserId;
@@ -56,9 +56,11 @@ userRouter.get("/connections", userAuth, async (req, res) => {
     }
 });
 
+const cache = require("../middlewares/cacheMiddleware");
+
 // ✅ UPDATED: Show companies on user feed
 // routes/user.js
-userRouter.get("/feed", userAuth, async (req, res) => {
+userRouter.get("/feed", userAuth, cache(300), async (req, res) => {
     try {
         const loggedInUser = req.user;
 
@@ -106,9 +108,9 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         const companies = await Company.find({
             _id: { $nin: Array.from(hideCompanyIds) }
         })
-        .select("companyName photoUrl wasteType pickupTimeFrom pickupTimeTo location about price")
-        .skip(skip)
-        .limit(limit);
+            .select("companyName photoUrl wasteType pickupTimeFrom pickupTimeTo location about price")
+            .skip(skip)
+            .limit(limit);
 
         // console.log("Fetched Companies:", companies);
 

@@ -34,8 +34,10 @@ videoRouter.post('/upload', userAuth, async (req, res) => {
   }
 });
 
+const cache = require("../middlewares/cacheMiddleware");
+
 // GET /videos
-videoRouter.get('/', userAuth, async (req, res) => {
+videoRouter.get('/', userAuth, cache(300), async (req, res) => {
   try {
     const loggedInUserId = req.user._id.toString();
 

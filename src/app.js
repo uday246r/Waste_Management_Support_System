@@ -42,8 +42,8 @@ app.use("/profile", profileRouter);
 app.use("/companyProfile", companyProfileRouter);
 app.use("/request", requestRouter);
 app.use("/user", userRouter);
-app.use("/company",companyRouter);
-app.use("/videos", videoRouter); 
+app.use("/company", companyRouter);
+app.use("/videos", videoRouter);
 app.use("/pickup", pickupRequestRouter);
 app.use("/messages", messageRouter);
 app.use("/payment", paymentRouter);
@@ -53,13 +53,22 @@ const server = http.createServer(app);
 initalizedSocket(server);
 
 // Connect to DB and start server
-connectDB()
- .then(() => {
-    console.log("Database connection established....");
-    server.listen(PORT, () => {
-        console.log(`Server successfully running on port ${PORT}....`);
-    }); 
- })
- .catch((err) => {
-    console.log("Database cannot be established");
- });
+const redisClient = require("./config/redis");
+
+const startServer = async () => {
+   try {
+      await connectDB();
+      console.log("Database connection established....");
+
+      await redisClient.connect();
+      // console.log("Redis connection established....");
+
+      server.listen(PORT, () => {
+         console.log(`Server successfully running on port ${PORT}....`);
+      });
+   } catch (err) {
+      console.log("Error starting server:", err);
+   }
+};
+
+startServer();
