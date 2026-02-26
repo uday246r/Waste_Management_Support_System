@@ -2,7 +2,7 @@ const redis = require('redis');
 require('dotenv').config(); // load once, globally
 
 if (!process.env.REDIS_URL) {
-    throw new Error('❌ REDIS_URL is missing in .env');
+    throw new Error(' REDIS_URL is missing in .env');
 }
 
 const redisClient = redis.createClient({
@@ -14,11 +14,11 @@ const redisClient = redis.createClient({
 });
 
 redisClient.on('connect', () => {
-    console.log('✅ Redis Client Connected');
+    console.log(' Redis Client Connected');
 });
 
 redisClient.on('error', (err) => {
-    console.error('❌ Redis Client Error:', err);
+    console.error(' Redis Client Error:', err);
 });
 
 module.exports = redisClient;

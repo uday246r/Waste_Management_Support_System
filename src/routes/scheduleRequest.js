@@ -6,6 +6,7 @@ const { companyAuth } = require("../middlewares/companyAuth");
 const PickupRequest = require("../models/schedulePickup");
 const Company = require("../models/company");
 const Payment = require("../models/payment");
+const { clearCacheByPattern, clearUserFeedCache } = require("../middlewares/cacheMiddleware");
 
 // ✅ Send pickup request from user to company
 pickupRequestRouter.post("/send/:status/:toCompanyId", userAuth, async (req, res) => {
@@ -50,6 +51,10 @@ pickupRequestRouter.post("/send/:status/:toCompanyId", userAuth, async (req, res
 
         const newRequest = new PickupRequest({ fromUserId, toCompanyId, status });
         const data = await newRequest.save();
+
+        //  Clear this user's feed cache (include '/user' prefix so pattern matches actual keys)
+        //  original keys look like "__express__/user/feed?...__<userId>"
+await clearUserFeedCache(fromUserId.toString());
 
         res.json({ message: "Pickup request " + status, data });
     } catch (err) {
@@ -115,6 +120,9 @@ pickupRequestRouter.post("/review/:status/:requestId", companyAuth, async (req, 
         pickupRequest.status = status;
         const data = await pickupRequest.save();
 
+        //  Clear feed cache for that user (ensure '/user' path is included)
+await clearUserFeedCache(pickupRequest.fromUserId.toString());
+
         res.json({ message: `Pickup request ${status}`, data });
     } catch (err) {
         res.status(400).send("ERROR: " + err.message);
@@ -143,6 +151,9 @@ pickupRequestRouter.post("/mark-picked-up/:requestId", userAuth, async (req, res
         if (wasteAmount) pickupRequest.wasteAmount = wasteAmount;
         if (wasteWeight) pickupRequest.wasteWeight = wasteWeight;
         const data = await pickupRequest.save();
+
+        //  Clear feed cache
+await clearUserFeedCache(pickupRequest.fromUserId.toString());
 
         res.json({ message: "Pickup request marked as picked up", data });
     } catch (err) {
@@ -184,6 +195,9 @@ pickupRequestRouter.post("/update-status/:status/:requestId", userAuth, async (r
 
         pickupRequest.status = status;
         const data = await pickupRequest.save();
+
+        //  Clear feed cache
+await clearUserFeedCache(req.user._id.toString());
 
         res.json({ message: `Pickup request updated to ${status}`, data });
     } catch (err) {

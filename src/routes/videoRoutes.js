@@ -3,6 +3,8 @@ const videoRouter = express.Router();
 const Video = require('../models/Video');
 const ConnectionRequest = require('../models/connectionRequest');
 const { userAuth } = require('../middlewares/auth');
+const { cache, clearCacheByPattern } = require("../middlewares/cacheMiddleware");
+
 
 // POST /videos/upload
 videoRouter.post('/upload', userAuth, async (req, res) => {
@@ -28,13 +30,16 @@ videoRouter.post('/upload', userAuth, async (req, res) => {
 
     // Save video
     await newVideo.save();
+
+    // Clear all video feed caches
+  await clearCacheByPattern(`__express__/videos*`);
+
     res.status(201).json({ message: 'Video uploaded successfully', video: newVideo });
   } catch (err) {
     res.status(500).json({ message: 'Failed to upload video', error: err.message });
   }
 });
 
-const cache = require("../middlewares/cacheMiddleware");
 
 // GET /videos
 videoRouter.get('/', userAuth, cache(300), async (req, res) => {
@@ -122,6 +127,8 @@ videoRouter.post('/:videoId/like', userAuth, async (req, res) => {
 
     await video.save();
 
+    await clearCacheByPattern(`__express__/videos*`);
+    
     return res.json({
       message: alreadyLiked ? 'Like removed' : 'Video liked',
       liked: !alreadyLiked,

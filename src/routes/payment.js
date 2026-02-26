@@ -119,6 +119,10 @@ paymentRouter.post("/request-payment/:requestId", userAuth, async (req, res) => 
         });
 
         const savedPayment = await payment.save();
+
+        //  Clear feed cache
+await clearUserFeedCache(req.user._id);
+
         res.json({ message: "Payment request created", payment: savedPayment });
     } catch (err) {
         res.status(400).send("ERROR: " + err.message);
@@ -325,6 +329,12 @@ paymentRouter.post("/complete-payment/:paymentId", companyAuth, async (req, res)
         if (notes) payment.notes = notes;
         await payment.save();
 
+        //  Clear feed cache after payment completion (user path included)
+const pickup = await PickupRequest.findById(payment.pickupRequestId);
+if (pickup) {
+    await clearUserFeedCache(pickup.fromUserId);
+}
+
         res.json({ message: "Payment marked as completed", payment });
     } catch (err) {
         res.status(400).send("ERROR: " + err.message);
@@ -369,6 +379,13 @@ paymentRouter.post("/verify-payment/:paymentId", companyAuth, async (req, res) =
         } else {
             payment.status = "failed";
             await payment.save();
+
+            //  Clear feed cache (payment verification failure path)
+const pickup = await PickupRequest.findById(payment.pickupRequestId);
+if (pickup) {
+    await clearUserFeedCache(pickup.fromUserId);
+}
+
             res.status(400).json({ message: "Payment verification failed", payment });
         }
     } catch (err) {

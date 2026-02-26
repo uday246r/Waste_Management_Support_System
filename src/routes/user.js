@@ -8,6 +8,7 @@ const User = require('../models/user');
 const Company = require('../models/company');
 const PickupRequest = require('../models/schedulePickup');
 const Payment = require('../models/payment');
+const { cache, clearCacheByPattern } = require("../middlewares/cacheMiddleware");
 
 const USER_SAFE_DATA = "firstName lastName photoUrl age gender emailId about skills";
 
@@ -56,9 +57,8 @@ userRouter.get("/connections", userAuth, async (req, res) => {
     }
 });
 
-const cache = require("../middlewares/cacheMiddleware");
 
-// ✅ UPDATED: Show companies on user feed
+//  UPDATED: Show companies on user feed
 // routes/user.js
 userRouter.get("/feed", userAuth, cache(300), async (req, res) => {
     try {
