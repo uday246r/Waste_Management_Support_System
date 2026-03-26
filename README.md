@@ -1,4 +1,4 @@
-# Waste Management Support System (WMS)
+# Waste Management Support System (WMSS)
 
 A full-stack Waste Management Support System featuring a dynamic React frontend and a robust Node.js/Express backend. This platform facilitates effective waste management tracking, user and company profiles, and real-time support.
 
