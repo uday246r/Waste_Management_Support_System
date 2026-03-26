@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "build": {
+    "env": {}
+  },
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
