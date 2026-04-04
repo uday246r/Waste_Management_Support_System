@@ -50,7 +50,7 @@ const baseCookieOptions = {
      }
  });
 
- authRouter.post("/login", rateLimiter({ strategy: 'sliding_window', limit: 5, window: 60 }), async(req,res) => {
+ authRouter.post("/login", async(req,res) => {
     try{
         const { emailId, password } = req.body;
 
