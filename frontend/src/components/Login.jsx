@@ -110,7 +110,8 @@ const Login = () => {
       }
     } catch (err) {
       const errorData = err?.response?.data;
-      setError(errorData?.message || (typeof errorData === "string" ? errorData : "Something went wrong"));
+      const errorMsg = errorData?.message || (typeof errorData === "string" ? errorData : "Something went wrong");
+      setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     }
   };
 

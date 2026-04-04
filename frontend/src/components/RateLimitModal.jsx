@@ -4,21 +4,30 @@ import { TriangleAlert } from "lucide-react";
 const RateLimitModal = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [alertMessage, setAlertMessage] = useState("");
 
   useEffect(() => {
-    const handleRateLimit = () => {
-      if (!isOpen) setIsOpen(true);
-      setCountdown(5);
+    const handleRateLimit = (e) => {
+      // Use details if provided by interceptor, fallback to defaults
+      const retryAfter = e.detail?.retryAfter || 5;
+      const message = e.detail?.message || "You are moving a bit too fast and have hit our system limits.";
+      
+      setIsOpen(true);
+      setAlertMessage(message);
+      
+      // Update countdown to be the maximum of current countdown or newly requested retry time
+      setCountdown(current => Math.max(current, retryAfter));
     };
+
     window.addEventListener("rate-limit-hit", handleRateLimit);
     return () => window.removeEventListener("rate-limit-hit", handleRateLimit);
-  }, [isOpen]);
+  }, []); // Safe dependency array, no re-registration
 
   useEffect(() => {
     let timer;
     if (isOpen && countdown > 0) {
       timer = setInterval(() => setCountdown(c => c - 1), 1000);
-    } else if (countdown === 0 && isOpen) {
+    } else if (countdown <= 0 && isOpen) {
       setIsOpen(false);
     }
     return () => clearInterval(timer);
@@ -36,8 +45,7 @@ const RateLimitModal = () => {
         </div>
         <h2 className="text-2xl font-bold mb-3 text-gray-800">Please slow down!</h2>
         <p className="text-gray-500 mb-6 text-sm leading-relaxed">
-          You are moving a bit too fast and have hit our system limits.
-          Please take a breather so we can keep the WMS platform safe and stable for everyone.
+          {alertMessage}
         </p>
 
         <div className="bg-teal-50 p-4 rounded-xl mb-6 border border-teal-100">

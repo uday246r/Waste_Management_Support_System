@@ -49,7 +49,7 @@ const Body = () => {
     } else {
       setIsAuthenticating(false);
     }
-  }, [dispatch, navigate, location.pathname, userData, companyData]);
+  }, [dispatch, navigate, userData?._id, companyData?._id]);
 
   return (
     <div>

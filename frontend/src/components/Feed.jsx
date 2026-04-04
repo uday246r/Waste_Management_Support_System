@@ -84,17 +84,7 @@ const Feed = () => {
 
   useEffect(() => {
     getFeed();
-  }, []);
-
-  useEffect(() => {
-    if (!loading && feed.length === 0) {
-      setLoading(true);
-      const timer = setTimeout(() => {
-        setLoading(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [feed]);
+  }, [dispatch]);
 
   if (loading) {
     return (

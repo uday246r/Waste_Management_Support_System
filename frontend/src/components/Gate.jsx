@@ -50,7 +50,8 @@ const Gate = () => {
         setError("Invalid password");
       }
     } catch (err) {
-      setError(err?.response?.data?.error || "Verification failed");
+      const errorMsg = err?.response?.data?.error || "Verification failed";
+      setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     }
   };
 
