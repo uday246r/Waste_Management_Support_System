@@ -1,11 +1,13 @@
 const redis = require('redis');
+const Redis = require('ioredis');
 require('dotenv').config(); // load once, globally
 
 if (!process.env.REDIS_URL) {
     throw new Error(' REDIS_URL is missing in .env');
 }
 
-const redisClient = redis.createClient({
+// 1. Existing Upstash Client (redis package)
+const cacheRedisClient = redis.createClient({
     url: process.env.REDIS_URL,
     socket: {
         tls: process.env.REDIS_URL.startsWith('rediss://'),
@@ -13,12 +15,37 @@ const redisClient = redis.createClient({
     }
 });
 
-redisClient.on('connect', () => {
-    console.log(' Redis Client Connected');
+cacheRedisClient.on('connect', () => {
+    console.log(' Upstash Cache Redis Client Connected');
 });
 
-redisClient.on('error', (err) => {
-    console.error(' Redis Client Error:', err);
+cacheRedisClient.on('error', (err) => {
+    console.error(' Upstash Cache Redis Client Error:', err);
 });
 
-module.exports = redisClient;
+// 2. New ioredis Client for Rate Limiting / BullMQ (Docker Redis)
+const RATE_LIMIT_URL = process.env.RATE_LIMIT_REDIS_URL || 'redis://localhost:6379';
+
+const rateLimitRedisClient = new Redis(RATE_LIMIT_URL, {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: true,
+    enableOfflineQueue: false, // Prevents hanging requests if Redis drops
+    retryStrategy(times) {
+        // Reconnect after
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+    }
+});
+
+rateLimitRedisClient.on('connect', () => {
+    console.log(' Rate Limit (ioredis) Client Connected');
+});
+
+rateLimitRedisClient.on('error', (err) => {
+    console.error(' Rate Limit (ioredis) Client Error:', err);
+});
+
+module.exports = {
+    cacheRedisClient,
+    rateLimitRedisClient
+};

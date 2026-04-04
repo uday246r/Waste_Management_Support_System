@@ -19,6 +19,10 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+const rateLimiter = require('./middlewares/rateLimiter');
+// Global Rate Limiter: Using keyPrefix 'global' ensures ALL routes dip from the exact same bucket!
+app.use(rateLimiter({ strategy: 'sliding_window', limit: 5, window: 60, keyPrefix: 'global' }));
+
 // Import Routes
 const authRouter = require("./routes/auth");
 const companyAuthRouter = require("./routes/companyRoutes");
@@ -53,14 +57,14 @@ const server = http.createServer(app);
 initalizedSocket(server);
 
 // Connect to DB and start server
-const redisClient = require("./config/redis");
+const { cacheRedisClient } = require("./config/redis");
 
 const startServer = async () => {
    try {
       await connectDB();
       console.log("Database connection established....");
 
-      await redisClient.connect();
+      await cacheRedisClient.connect();
       // console.log("Redis connection established....");
 
       server.listen(PORT, () => {
