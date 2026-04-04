@@ -10,7 +10,7 @@ if (!process.env.REDIS_URL) {
 const cacheRedisClient = redis.createClient({
     url: process.env.REDIS_URL,
     socket: {
-        tls: process.env.REDIS_URL.startsWith('rediss://'),
+        tls: process.env.REDIS_URL.startsWith('rediss://') || process.env.REDIS_URL.includes('upstash.io'),
         rejectUnauthorized: false
     }
 });
@@ -26,7 +26,8 @@ cacheRedisClient.on('error', (err) => {
 // 2. New ioredis Client for Rate Limiting / BullMQ (Docker Redis)
 const RATE_LIMIT_URL = process.env.RATE_LIMIT_REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379';
 
-const tlsOptions = RATE_LIMIT_URL.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined;
+const isUpstash = RATE_LIMIT_URL.includes('upstash.io');
+const tlsOptions = (RATE_LIMIT_URL.startsWith('rediss://') || isUpstash) ? { rejectUnauthorized: false } : undefined;
 
 const rateLimitRedisClient = new Redis(RATE_LIMIT_URL, {
     maxRetriesPerRequest: null,
