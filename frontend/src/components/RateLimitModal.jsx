@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 
 const RateLimitModal = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,7 +31,7 @@ const RateLimitModal = () => {
       <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 text-center transform scale-100 transition-all m-4">
         <div className="flex justify-center mb-6">
           <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center animate-bounce shadow-inner">
-            <AlertTriangle className="w-10 h-10 text-orange-500" />
+            <TriangleAlert className="w-10 h-10 text-orange-500" />
           </div>
         </div>
         <h2 className="text-2xl font-bold mb-3 text-gray-800">Please slow down!</h2>
