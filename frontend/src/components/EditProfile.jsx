@@ -89,7 +89,8 @@ const Profile = () => {
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
-      setError(err?.response?.data || "Error updating profile");
+      const errorMsg = err?.response?.data?.message || (typeof err?.response?.data === 'string' ? err?.response?.data : "Error updating profile");
+      setError(errorMsg);
     }
   };
 

@@ -24,12 +24,15 @@ cacheRedisClient.on('error', (err) => {
 });
 
 // 2. New ioredis Client for Rate Limiting / BullMQ (Docker Redis)
-const RATE_LIMIT_URL = process.env.RATE_LIMIT_REDIS_URL || 'redis://localhost:6379';
+const RATE_LIMIT_URL = process.env.RATE_LIMIT_REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379';
+
+const tlsOptions = RATE_LIMIT_URL.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined;
 
 const rateLimitRedisClient = new Redis(RATE_LIMIT_URL, {
     maxRetriesPerRequest: null,
     enableReadyCheck: true,
     enableOfflineQueue: false, // Prevents hanging requests if Redis drops
+    tls: tlsOptions,
     retryStrategy(times) {
         // Reconnect after
         const delay = Math.min(times * 50, 2000);
