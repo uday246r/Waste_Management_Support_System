@@ -2,6 +2,7 @@ import React,{ StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import axios from 'axios';
 
 // Global Axios Interceptor for Rate Limiting (429)
@@ -17,6 +18,8 @@ axios.interceptors.response.use(
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )
