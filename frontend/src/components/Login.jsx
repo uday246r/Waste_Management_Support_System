@@ -109,7 +109,8 @@ const Login = () => {
         navigate("/login");   // redirect to login route
       }
     } catch (err) {
-      setError(err?.response?.data || "Something went wrong");
+      const errorData = err?.response?.data;
+      setError(errorData?.message || (typeof errorData === "string" ? errorData : "Something went wrong"));
     }
   };
 

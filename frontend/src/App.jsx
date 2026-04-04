@@ -20,10 +20,12 @@ import Footer from "./components/Footer";
 import ContactUs from "./components/Contact";
 import RealChat from "./components/RealChat";
 import Transactions from "./components/Transactions";
+import RateLimitModal from "./components/RateLimitModal";
 
 function App() {
   return (
     <Provider store={appStore}>
+      <RateLimitModal />
       <BrowserRouter basename="/">
         <Routes>
           <Route path="/gate" element={<Gate />} />
