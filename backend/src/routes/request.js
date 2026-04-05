@@ -4,6 +4,9 @@ const requestRouter = express.Router();
 const { userAuth } = require("../middlewares/auth");
 const ConnectionRequest = require("../models/connectionRequest");
 const User = require("../models/user");
+const rateLimiter = require("../middlewares/rateLimiter");
+
+requestRouter.use(rateLimiter({ strategy: 'token_bucket', limit: 10, window: 60 }));
 
 // requestRouter.post("/sendConnectionRequest",userAuth,  async(req,res) => {
 //     const user = req.user;

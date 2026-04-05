@@ -5,6 +5,7 @@ const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { NODE_ENV } = require("../config/env");
+const rateLimiter = require("../middlewares/rateLimiter");
 
 const isProduction = NODE_ENV === "production";
 const baseCookieOptions = {

@@ -4,10 +4,11 @@ const Video = require('../models/Video');
 const ConnectionRequest = require('../models/connectionRequest');
 const { userAuth } = require('../middlewares/auth');
 const { cache, clearCacheByPattern } = require("../middlewares/cacheMiddleware");
+const rateLimiter = require('../middlewares/rateLimiter');
 
 
 // POST /videos/upload
-videoRouter.post('/upload', userAuth, async (req, res) => {
+videoRouter.post('/upload', userAuth, rateLimiter({ strategy: 'token_bucket', limit: 3, window: 60 }), async (req, res) => {
   const { title, description, youtubeUrl } = req.body;
 
   // Validate inputs

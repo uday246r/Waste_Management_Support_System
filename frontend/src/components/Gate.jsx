@@ -50,7 +50,8 @@ const Gate = () => {
         setError("Invalid password");
       }
     } catch (err) {
-      setError(err?.response?.data?.error || "Verification failed");
+      const errorMsg = err?.response?.data?.error || "Verification failed";
+      setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     }
   };
 
@@ -126,7 +127,7 @@ const Gate = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter gate password"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition text-gray-800"
-              autoComplete="off"
+              autoComplete="current-password"
             />
           </div>
 

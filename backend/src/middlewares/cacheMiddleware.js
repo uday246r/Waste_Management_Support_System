@@ -1,5 +1,5 @@
 
-const redisClient = require('../config/redis');
+const { cacheRedisClient: redisClient } = require('../config/redis');
 
 /**
  * Generate standardized cache key
