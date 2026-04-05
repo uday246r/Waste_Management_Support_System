@@ -7,6 +7,19 @@ const jwt = require("jsonwebtoken");
 const { NODE_ENV } = require("../config/env");
 const rateLimiter = require("../middlewares/rateLimiter");
 
+const signupLimiter = rateLimiter({
+    strategy: "sliding_window",
+    limit: 10,
+    window: 3600,
+    keyPrefix: "user-signup",
+});
+const loginLimiter = rateLimiter({
+    strategy: "sliding_window",
+    limit: 5,
+    window: 900,
+    keyPrefix: "user-login",
+});
+
 const isProduction = NODE_ENV === "production";
 const baseCookieOptions = {
     httpOnly: true,
@@ -19,7 +32,7 @@ const baseCookieOptions = {
 
 
 
- authRouter.post("/signup", async (req, res) => {
+authRouter.post("/signup", signupLimiter, async (req, res) => {
      try{
         // validation of data
      validateSignUpData(req);
@@ -50,7 +63,7 @@ const baseCookieOptions = {
      }
  });
 
- authRouter.post("/login", async(req,res) => {
+authRouter.post("/login", loginLimiter, async (req, res) => {
     try{
         const { emailId, password } = req.body;
 

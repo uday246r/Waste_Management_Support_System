@@ -5,6 +5,20 @@ const Company = require("../models/company");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { NODE_ENV } = require("../config/env");
+const rateLimiter = require("../middlewares/rateLimiter");
+
+const signupLimiter = rateLimiter({
+    strategy: "sliding_window",
+    limit: 10,
+    window: 3600,
+    keyPrefix: "company-signup",
+});
+const loginLimiter = rateLimiter({
+    strategy: "sliding_window",
+    limit: 50,
+    window: 900,
+    keyPrefix: "company-login",
+});
 
 const isProduction = NODE_ENV === "production";
 const baseCookieOptions = {
@@ -14,7 +28,7 @@ const baseCookieOptions = {
     path: "/",
 };
 
-authCRouter.post("/signup", async (req, res) => {
+authCRouter.post("/signup", signupLimiter, async (req, res) => {
     try {
         // Validate signup data
         validateSignUpDataCompany(req);
@@ -73,7 +87,7 @@ authCRouter.post("/signup", async (req, res) => {
     }
 });
 
-authCRouter.post("/login", async (req, res) => {
+authCRouter.post("/login", loginLimiter, async (req, res) => {
     try {
         const { emailId, password } = req.body;
 
