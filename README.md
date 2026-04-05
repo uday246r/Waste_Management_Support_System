@@ -38,4 +38,4 @@ The absolute easiest way to run this application is using Docker. You do not nee
 ## Tech Stack
 - Frontend: React 19, Vite, TailwindCSS, DaisyUI, Redux Toolkit
 - Backend: Node 20, Express, MongoDB (Atlas), Redis, Socket.io
-- Infrastructure: Docker & Docker Compose
+- Infrastructure: Docker & Docker compose
