@@ -5,9 +5,10 @@ import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import axios from 'axios';
 import { apiErrorToString } from './utils/apiErrorMessage.js';
-import { RATE_LIMIT_MODAL_DEFAULT_SECONDS } from './utils/constants.js';
-
-const MAX_RETRY_DISPLAY_SEC = 86400;
+import {
+  RATE_LIMIT_MODAL_DEFAULT_SECONDS,
+  sanitizeRateLimitCountdownSeconds,
+} from './utils/constants.js';
 
 function retryAfterSecondsFrom429(error) {
   const headers = error.response?.headers || {};
@@ -17,19 +18,28 @@ function retryAfterSecondsFrom429(error) {
   };
 
   const fromRetryAfter = h('retry-after');
-  if (fromRetryAfter !== '' && !Number.isNaN(Number(fromRetryAfter))) {
-    return Math.max(1, Math.min(MAX_RETRY_DISPLAY_SEC, parseInt(fromRetryAfter, 10)));
+  if (fromRetryAfter !== '') {
+    const parsed = parseInt(fromRetryAfter, 10);
+    if (Number.isFinite(parsed)) {
+      return sanitizeRateLimitCountdownSeconds(parsed);
+    }
   }
 
   const bodyRa = error.response?.data?.retryAfter;
-  if (bodyRa != null && !Number.isNaN(Number(bodyRa))) {
-    return Math.max(1, Math.min(MAX_RETRY_DISPLAY_SEC, parseInt(String(bodyRa), 10)));
+  if (bodyRa != null && bodyRa !== '') {
+    const parsed = parseInt(String(bodyRa), 10);
+    if (Number.isFinite(parsed)) {
+      return sanitizeRateLimitCountdownSeconds(parsed);
+    }
   }
 
   const reset = h('x-ratelimit-reset');
-  if (reset !== '' && !Number.isNaN(Number(reset))) {
-    const wait = Number(reset) - Math.floor(Date.now() / 1000);
-    return Math.max(1, Math.min(MAX_RETRY_DISPLAY_SEC, wait));
+  if (reset !== '') {
+    const resetUnix = Number(reset);
+    if (Number.isFinite(resetUnix)) {
+      const wait = resetUnix - Math.floor(Date.now() / 1000);
+      return sanitizeRateLimitCountdownSeconds(wait);
+    }
   }
 
   return RATE_LIMIT_MODAL_DEFAULT_SECONDS;
@@ -45,7 +55,9 @@ axios.interceptors.response.use(
           error.response.data,
           'Too many requests. Please try again.'
         );
-        const retryAfter = retryAfterSecondsFrom429(error);
+        const retryAfter = sanitizeRateLimitCountdownSeconds(
+          retryAfterSecondsFrom429(error)
+        );
 
         window.dispatchEvent(
           new CustomEvent('rate-limit-hit', { 
@@ -63,10 +75,15 @@ axios.interceptors.response.use(
   }
 );
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>,
-)
+const rootEl = document.getElementById('root');
+if (!rootEl) {
+  console.error('WMS: #root element not found — check index.html');
+} else {
+  createRoot(rootEl).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+}
