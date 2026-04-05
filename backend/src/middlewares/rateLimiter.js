@@ -44,71 +44,87 @@ rateLimitRedisClient.defineCommand('tokenBucket', {
 const rateLimiter = ({ strategy, limit, window, keyPrefix }) => {
     return async (req, res, next) => {
         try {
-            // Identify user: prioritize authenticated user ID over IP fallback
             const identifier = (req.user && req.user._id) ? req.user._id.toString() : req.ip;
             const prefix = keyPrefix ? `ratelimit:${strategy}:${keyPrefix}` : `ratelimit:${strategy}:${req.baseUrl || req.path}`;
             const key = `${prefix}:${identifier}`;
             const now = Date.now();
-            
-            let allowed = false;
-            let remaining = limit;
-            
+
             if (strategy === 'sliding_window') {
                 const windowStart = now - (window * 1000);
-                
-                // Atomically clear old requests, add new, count, and expire
+
                 const results = await rateLimitRedisClient.multi()
                     .zremrangebyscore(key, '-inf', windowStart)
                     .zadd(key, now, `${now}-${Math.random()}`)
                     .zcard(key)
                     .expire(key, window)
                     .exec();
-                    
+
                 const requestCount = results[2][1];
-                allowed = requestCount <= limit;
-                remaining = Math.max(0, limit - requestCount);
-                
-                // If blocked, we remove the request we just forcefully added to not penalize future valid attempts infinitely
+                const allowed = requestCount <= limit;
+                const remaining = Math.max(0, limit - requestCount);
+
+                const oldestPair = await rateLimitRedisClient.zrange(key, 0, 0, 'WITHSCORES');
+                const oldestTs = oldestPair.length >= 2 ? Number(oldestPair[1]) : now;
+                const resetAtUnix = Math.ceil((oldestTs + window * 1000) / 1000);
+
+                res.setHeader('X-RateLimit-Limit', String(limit));
+                res.setHeader('X-RateLimit-Remaining', String(allowed ? remaining : 0));
+                res.setHeader('X-RateLimit-Reset', String(resetAtUnix));
+
                 if (!allowed) {
+                    const retryAfterSec = Math.max(
+                        1,
+                        Math.ceil((oldestTs + window * 1000 - now) / 1000)
+                    );
+                    res.setHeader('Retry-After', String(retryAfterSec));
                     await rateLimitRedisClient.zremrangebyrank(key, -1, -1);
+                    return res.status(429).json({
+                        success: false,
+                        message: 'Too many requests. Try again later.',
+                        retryAfter: retryAfterSec,
+                    });
                 }
-            } else if (strategy === 'token_bucket') {
+
+                return next();
+            }
+
+            if (strategy === 'token_bucket') {
                 const tokensKey = `${key}:tokens`;
                 const timestampKey = `${key}:timestamp`;
-                
-                // rate is tokens per millisecond
-                const rate = limit / (window * 1000); 
-                
+                const rate = limit / (window * 1000);
+
                 const result = await rateLimitRedisClient.tokenBucket(
-                    tokensKey, 
-                    timestampKey, 
+                    tokensKey,
+                    timestampKey,
                     rate,
-                    limit, 
+                    limit,
                     now
                 );
-                
-                allowed = result[0] === 1; // 1 represents true from Lua
-                remaining = Math.floor(result[1]);
-            } else {
-                throw new Error(`Unknown rate limit strategy: ${strategy}`);
+
+                const allowed = result[0] === 1;
+                const remaining = Math.floor(result[1]);
+                const resetAtUnix = Math.ceil((now + window * 1000) / 1000);
+
+                res.setHeader('X-RateLimit-Limit', String(limit));
+                res.setHeader('X-RateLimit-Remaining', String(Math.max(0, remaining)));
+                res.setHeader('X-RateLimit-Reset', String(resetAtUnix));
+
+                if (!allowed) {
+                    const retryAfterSec = Math.max(1, Math.ceil(window / limit));
+                    res.setHeader('Retry-After', String(retryAfterSec));
+                    return res.status(429).json({
+                        success: false,
+                        message: 'Too many requests. Try again later.',
+                        retryAfter: retryAfterSec,
+                    });
+                }
+
+                return next();
             }
-            
-            // Set Standard HTTP Headers
-            res.setHeader('X-RateLimit-Limit', limit);
-            res.setHeader('X-RateLimit-Remaining', remaining);
-            res.setHeader('X-RateLimit-Reset', Math.ceil((now + window * 1000) / 1000));
-            
-            if (!allowed) {
-                return res.status(429).json({
-                    success: false,
-                    message: "Too many requests. Try again later."
-                });
-            }
-            
-            next();
+
+            throw new Error(`Unknown rate limit strategy: ${strategy}`);
         } catch (err) {
             console.error('Rate Limiter Error:', err);
-            // Fail open if Redis is down, to not block users on infrastructural issues
             next();
         }
     };

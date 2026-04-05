@@ -25,6 +25,12 @@ const env = {
     "http://localhost:5173",
   MONGO_URI: process.env.MONGO_URI,
   JWT_SECRET: process.env.JWT_SECRET,
+  GLOBAL_RATE_LIMIT_ENABLED: process.env.GLOBAL_RATE_LIMIT_ENABLED === "true",
+  GLOBAL_RATE_LIMIT_MAX: parseInt(process.env.GLOBAL_RATE_LIMIT_MAX || "500", 10),
+  GLOBAL_RATE_LIMIT_WINDOW_SEC: parseInt(
+    process.env.GLOBAL_RATE_LIMIT_WINDOW_SEC || "60",
+    10
+  ),
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
 };

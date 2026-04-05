@@ -7,21 +7,42 @@ const connectDB = require("./config/database");
 const {
    CLIENT_URL,
    PORT,
+   GLOBAL_RATE_LIMIT_ENABLED,
+   GLOBAL_RATE_LIMIT_MAX,
+   GLOBAL_RATE_LIMIT_WINDOW_SEC,
 } = require("./config/env");
 const app = express();
+
+// Render / reverse proxies: trust X-Forwarded-For so req.ip is the real client (avoids one shared rate-limit bucket for everyone).
+app.set("trust proxy", 1);
+
 // Middlewares
 app.use(
    cors({
       origin: CLIENT_URL, // frontend URL
       credentials: true,
+      exposedHeaders: [
+         "Retry-After",
+         "X-RateLimit-Limit",
+         "X-RateLimit-Remaining",
+         "X-RateLimit-Reset",
+      ],
    })
 );
 app.use(express.json());
 app.use(cookieParser());
 
-const rateLimiter = require('./middlewares/rateLimiter');
-// Global Rate Limiter: Using keyPrefix 'global' ensures ALL routes dip from the exact same bucket!
-app.use(rateLimiter({ strategy: 'sliding_window', limit: 5, window: 60, keyPrefix: 'global' }));
+const rateLimiter = require("./middlewares/rateLimiter");
+if (GLOBAL_RATE_LIMIT_ENABLED) {
+   app.use(
+      rateLimiter({
+         strategy: "sliding_window",
+         limit: GLOBAL_RATE_LIMIT_MAX,
+         window: GLOBAL_RATE_LIMIT_WINDOW_SEC,
+         keyPrefix: "global",
+      })
+   );
+}
 
 // Import Routes
 const authRouter = require("./routes/auth");

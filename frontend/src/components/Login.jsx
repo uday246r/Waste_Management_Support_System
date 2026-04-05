@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { addUser } from "../utils/userSlice";
 import { addCompany } from "../utils/companySlice";
 import { BASE_URL } from "../utils/constants";
+import { apiErrorToString } from "../utils/apiErrorMessage";
 
 const Login = () => {
   const [role, setRole] = useState("user"); // "user" or "company"
@@ -109,9 +110,7 @@ const Login = () => {
         navigate("/login");   // redirect to login route
       }
     } catch (err) {
-      const errorData = err?.response?.data;
-      const errorMsg = errorData?.message || (typeof errorData === "string" ? errorData : "Something went wrong");
-      setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
+      setError(apiErrorToString(err?.response?.data, err?.message || "Something went wrong"));
     }
   };
 
