@@ -21,11 +21,14 @@ import ContactUs from "./components/Contact";
 import RealChat from "./components/RealChat";
 import Transactions from "./components/Transactions";
 import RateLimitModal from "./components/RateLimitModal";
+import SilentErrorBoundary from "./components/SilentErrorBoundary";
 
 function App() {
   return (
     <Provider store={appStore}>
-      <RateLimitModal />
+      <SilentErrorBoundary>
+        <RateLimitModal />
+      </SilentErrorBoundary>
       <BrowserRouter basename="/">
         <Routes>
           <Route path="/gate" element={<Gate />} />
