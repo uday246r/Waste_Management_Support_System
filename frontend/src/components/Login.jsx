@@ -291,6 +291,7 @@ const Login = () => {
                 onChange={handleInputChange}
                 placeholder="Enter your Password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition text-gray-500"
               />
               <button
