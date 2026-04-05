@@ -10,7 +10,8 @@ const RateLimitModal = () => {
     const handleRateLimit = (e) => {
       // Use details if provided by interceptor, fallback to defaults
       const retryAfter = e.detail?.retryAfter || 5;
-      const message = e.detail?.message || "You are moving a bit too fast and have hit our system limits.";
+      const rawMessage = e.detail?.message || "You are moving a bit too fast and have hit our system limits.";
+      const message = typeof rawMessage === "string" ? rawMessage : (rawMessage?.message || JSON.stringify(rawMessage));
       
       setIsOpen(true);
       setAlertMessage(message);

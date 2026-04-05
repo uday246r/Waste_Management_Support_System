@@ -18,7 +18,10 @@ axios.interceptors.response.use(
             retryAfterMs = Number(retryHeader) * 1000;
         }
 
-        const message = error.response.data?.message || "Too many requests. Please try again.";
+        let message = error.response.data?.message || "Too many requests. Please try again.";
+        if (typeof message !== "string") {
+            message = message?.message || JSON.stringify(message);
+        }
 
         window.dispatchEvent(
           new CustomEvent('rate-limit-hit', { 
