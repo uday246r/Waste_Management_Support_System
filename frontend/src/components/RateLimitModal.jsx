@@ -33,6 +33,7 @@ const RateLimitModal = () => {
 
   useEffect(() => {
     const handleRateLimit = (e) => {
+      console.log('Rate limit hit - showing modal', e.detail);
       const retryAfter = sanitizeRateLimitCountdownSeconds(
         e.detail?.retryAfter ?? RATE_LIMIT_MODAL_DEFAULT_SECONDS
       );
@@ -62,23 +63,57 @@ const RateLimitModal = () => {
 
   useEffect(() => {
     if (isOpen && countdown <= 0) {
+      console.log('Rate limit modal closing');
       setIsOpen(false);
+      window.dispatchEvent(new CustomEvent('rate-limit-end'));
     }
   }, [isOpen, countdown]);
 
-  if (!isOpen || typeof document === "undefined") return null;
+  if (!isOpen) return null;
+
+  // Ensure we have a valid document and body
+  if (typeof document === "undefined" || !document.body) return null;
 
   const portalTarget = document.body;
-  if (!portalTarget) return null;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-all duration-300 p-4"
+      className="fixed inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-all duration-300 p-4"
+      style={{
+        zIndex: 2147483647, // Maximum z-index value
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(17, 24, 39, 0.6)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem'
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="rate-limit-title"
     >
-      <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 text-center transform scale-100 transition-all">
+      <div
+        className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 text-center transform scale-100 transition-all"
+        style={{
+          zIndex: 2147483647, // Maximum z-index value
+          backgroundColor: 'white',
+          padding: '2rem',
+          borderRadius: '1rem',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          maxWidth: '28rem',
+          width: '100%',
+          border: '1px solid #f3f4f6',
+          textAlign: 'center',
+          transform: 'scale(1)',
+          transition: 'all 0.3s ease'
+        }}
+      >
         <div className="flex justify-center mb-6">
           <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center animate-bounce shadow-inner">
             <WarningIcon />
@@ -103,8 +138,10 @@ const RateLimitModal = () => {
           type="button"
           className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium h-12 shadow-md hover:shadow-lg transition duration-200 transform hover:-translate-y-0.5"
           onClick={() => {
+            console.log('Rate limit modal manually closed');
             setIsOpen(false);
             setCountdown(0);
+            window.dispatchEvent(new CustomEvent('rate-limit-end'));
           }}
         >
           Got it

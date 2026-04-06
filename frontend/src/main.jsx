@@ -10,6 +10,9 @@ import {
   sanitizeRateLimitCountdownSeconds,
 } from './utils/constants.js';
 
+// Import test utilities for production debugging
+import './utils/testRateLimitModal.js';
+
 function retryAfterSecondsFrom429(error) {
   const headers = error.response?.headers || {};
   const h = (name) => {
