@@ -3,14 +3,24 @@
  */
 export function apiErrorToString(data, fallback = "Something went wrong") {
   if (data == null || data === "") return fallback;
-  if (typeof data === "string") return data;
-  if (typeof data === "object") {
-    if (typeof data.message === "string") return data.message;
-    if (Array.isArray(data.message)) return data.message.map(String).join(", ");
-    if (typeof data.error === "string") return data.error;
+
+  let parsedData = data;
+  if (typeof data === "string") {
+    try {
+      parsedData = JSON.parse(data);
+    } catch {
+      return data; // If it's a normal string, return as is
+    }
   }
+
+  if (typeof parsedData === "object" && parsedData !== null) {
+    if (typeof parsedData.message === "string") return parsedData.message;
+    if (Array.isArray(parsedData.message)) return parsedData.message.map(String).join(", ");
+    if (typeof parsedData.error === "string") return parsedData.error;
+  }
+
   try {
-    return JSON.stringify(data);
+    return JSON.stringify(parsedData);
   } catch {
     return fallback;
   }
