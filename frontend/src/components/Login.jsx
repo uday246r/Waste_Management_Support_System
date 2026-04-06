@@ -110,8 +110,12 @@ const Login = () => {
         navigate("/login");   // redirect to login route
       }
     } catch (err) {
-      setError(apiErrorToString(err?.response?.data, err?.message || "Something went wrong"));
-    }
+const msg = apiErrorToString(
+  err?.response?.data,
+  err?.message || "Something went wrong"
+);
+
+setError(typeof msg === "string" ? msg : msg?.message || "Something went wrong");    }
   };
 
   const handleFormSubmit = (e) => {
@@ -331,8 +335,9 @@ const Login = () => {
 
           {error && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-              <p className="text-red-700 text-sm">{error}</p>
-            </div>
+<p className="text-red-700 text-sm">
+  {typeof error === "string" ? error : "Something went wrong"}
+</p>            </div>
           )}
 
           <button

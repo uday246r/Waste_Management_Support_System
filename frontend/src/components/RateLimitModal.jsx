@@ -38,13 +38,22 @@ const RateLimitModal = () => {
         e.detail?.retryAfter ?? RATE_LIMIT_MODAL_DEFAULT_SECONDS
       );
       const raw = e.detail?.message;
-      const message =
-        typeof raw === "string"
-          ? raw
-          : apiErrorToString(
-              raw,
-              "You are moving a bit too fast and have hit our system limits."
-            );
+      let message;
+
+if (typeof raw === "string") {
+  message = raw;
+} else {
+  const parsed = apiErrorToString(
+    raw,
+    "You are moving a bit too fast and have hit our system limits."
+  );
+
+  message =
+    typeof parsed === "string"
+      ? parsed
+      : parsed?.message ||
+        "You are moving a bit too fast and have hit our system limits.";
+}
 
       setIsOpen(true);
       setAlertMessage(message);
