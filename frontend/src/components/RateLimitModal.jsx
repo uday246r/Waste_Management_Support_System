@@ -71,10 +71,16 @@ const RateLimitModal = () => {
 
   if (!isOpen) return null;
 
-  // Ensure we have a valid document and body
-  if (typeof document === "undefined" || !document.body) return null;
+  // Ensure we have a valid document
+  if (typeof document === "undefined") return null;
 
-  const portalTarget = document.body;
+  let portalTarget = document.getElementById("rate-limit-modal-root");
+  if (!portalTarget) {
+    if (!document.body) return null;
+    portalTarget = document.createElement("div");
+    portalTarget.id = "rate-limit-modal-root";
+    document.body.appendChild(portalTarget);
+  }
 
   return createPortal(
     <div
