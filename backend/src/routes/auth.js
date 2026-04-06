@@ -9,14 +9,14 @@ const rateLimiter = require("../middlewares/rateLimiter");
 
 const signupLimiter = rateLimiter({
     strategy: "sliding_window",
-    limit: 10,
-    window: 3600,
+    limit: 5,
+    window: 20,
     keyPrefix: "user-signup",
 });
 const loginLimiter = rateLimiter({
     strategy: "sliding_window",
     limit: 5,
-    window: 900,
+    window: 20,
     keyPrefix: "user-login",
 });
 
