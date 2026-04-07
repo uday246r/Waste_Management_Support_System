@@ -38,7 +38,7 @@ const Body = () => {
           setIsAuthenticating(false);
           // Avoid redirect loop on /gate and /login
           if (location.pathname !== "/gate" && location.pathname !== "/login") {
-            navigate("/gate", { replace: true });
+            navigate("/login", { replace: true });
           }
         }
       }
