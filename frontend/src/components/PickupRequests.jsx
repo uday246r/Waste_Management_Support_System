@@ -14,7 +14,7 @@ const PickupRequests = () => {
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'accepted' | 'picked-up'
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedRequestId, setSelectedRequestId] = useState(null);
-    const [paymentData, setPaymentData] = useState({ accountNumber: '', upiId: '', amount: '' });
+    const [paymentData, setPaymentData] = useState({ accountNumber: '', upiId: '', amount: '', wasteWeight: '' });
     const [pendingPayments, setPendingPayments] = useState([]);
     const [userPayments, setUserPayments] = useState([]);
     const [showPaymentComponent, setShowPaymentComponent] = useState(false);
@@ -69,7 +69,7 @@ const PickupRequests = () => {
                 { withCredentials: true }
             );
             setShowPaymentModal(false);
-            setPaymentData({ accountNumber: '', upiId: '', amount: '' });
+            setPaymentData({ accountNumber: '', upiId: '', amount: '', wasteWeight: '' });
             fetchPickupRequests();
             fetchUserPayments();
             alert("Payment request submitted successfully!");
@@ -454,6 +454,9 @@ const PickupRequests = () => {
                                                                 <p className="text-xs text-green-600 mt-1">
                                                                     Amount: ₹{pendingPayments.find(p => p.pickupRequestId?._id === requestId || p.pickupRequestId === requestId)?.amount}
                                                                 </p>
+                                                                <p className="text-xs text-green-600">
+                                                                    Weight: {pendingPayments.find(p => p.pickupRequestId?._id === requestId || p.pickupRequestId === requestId)?.pickupRequestId?.wasteWeight || "N/A"} kg
+                                                                </p>
                                                                 {pendingPayments.find(p => p.pickupRequestId?._id === requestId || p.pickupRequestId === requestId)?.upiId && (
                                                                     <p className="text-xs text-green-600">UPI: {pendingPayments.find(p => p.pickupRequestId?._id === requestId || p.pickupRequestId === requestId)?.upiId}</p>
                                                                 )}
@@ -567,13 +570,7 @@ const PickupRequests = () => {
                                                         
                                                         {/* Mark as Picked Up Button */}
                                                         <button 
-                                                            onClick={() => {
-                                                                const amount = prompt("Enter waste amount (in ₹):");
-                                                                const weight = prompt("Enter waste weight (in kg):");
-                                                                if (amount) {
-                                                                    markAsPickedUp(requestId, parseFloat(amount), weight ? parseFloat(weight) : null);
-                                                                }
-                                                            }}
+                                                            onClick={() => markAsPickedUp(requestId)}
                                                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-300 flex items-center justify-center"
                                                         >
                                                             <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -692,6 +689,17 @@ const PickupRequests = () => {
                                 />
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-teal-600 mb-1">Waste Weight (kg)</label>
+                                <input
+                                    type="number"
+                                    value={paymentData.wasteWeight}
+                                    onChange={(e) => setPaymentData({ ...paymentData, wasteWeight: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-teal-600"
+                                    placeholder="Enter total waste weight"
+                                    required
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-teal-600 mb-1">Account Number (Optional)</label>
                                 <input
                                     type="text"
@@ -716,7 +724,7 @@ const PickupRequests = () => {
                             <button
                                 onClick={() => {
                                     setShowPaymentModal(false);
-                                    setPaymentData({ accountNumber: '', upiId: '', amount: '' });
+                                    setPaymentData({ accountNumber: '', upiId: '', amount: '', wasteWeight: '' });
                                 }}
                                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
                             >

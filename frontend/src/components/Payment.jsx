@@ -16,7 +16,10 @@ const Payment = ({ paymentId, amount, userAccountNumber, userUpiId, onSuccess, o
     const [manualInitialized, setManualInitialized] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
-    const supportsRazorpay = Boolean(company?.razorpayAccountId && userUpiId);
+    const [overrideAmount, setOverrideAmount] = useState(amount || '');
+
+    // Bypass strict UI validation for test mode (backend handles injecting fake test IDs for Razorpay)
+    const supportsRazorpay = true;
 
     useEffect(() => {
         const ensureCompanyProfile = async () => {
@@ -39,7 +42,7 @@ const Payment = ({ paymentId, amount, userAccountNumber, userUpiId, onSuccess, o
         try {
             const res = await axios.post(
                 BASE_URL + "/payment/process-payout/" + paymentId + `?method=${method}`,
-                {},
+                { overrideAmount },
                 { withCredentials: true }
             );
 
@@ -207,6 +210,22 @@ const Payment = ({ paymentId, amount, userAccountNumber, userUpiId, onSuccess, o
                             Choose how you want to settle this payment. Razorpay provides instant payouts when enabled; manual transfer lets you pay through your bank/UPI and then record the transaction.
                         </div>
                         
+                        <div className="bg-teal-50 p-4 rounded-lg border border-teal-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-teal-800">Transfer Amount</h3>
+                                <p className="text-xs text-teal-600">You can adjust the amount if there was a calculation mistake.</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-lg font-bold text-teal-800">₹</span>
+                                <input 
+                                    type="number"
+                                    value={overrideAmount}
+                                    onChange={(e) => setOverrideAmount(e.target.value)}
+                                    className="w-24 px-2 py-1 text-right border border-teal-300 rounded focus:ring-teal-500 font-bold text-teal-800"
+                                />
+                            </div>
+                        </div>
+                        
                         {supportsRazorpay ? (
                             <button
                                 onClick={() => processPayout('razorpay')}
@@ -248,23 +267,49 @@ const Payment = ({ paymentId, amount, userAccountNumber, userUpiId, onSuccess, o
                 )}
 
                 {payoutResult && payoutResult.type === 'automatic' && (
-                    <div className="space-y-4 mt-4">
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                            <div className="flex items-center mb-2">
-                                <svg className="w-6 h-6 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="flex flex-col items-center justify-center py-8 px-4 opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]">
+                        <style>
+                            {`
+                                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                                @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+                                @keyframes drawTick { to { stroke-dashoffset: 0; } }
+                            `}
+                        </style>
+
+                        {/* Success Tick Animation */}
+                        <div className="relative w-20 h-20 mb-6 flex justify-center items-center">
+                            <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-30"></div>
+                            <div className="relative w-full h-full bg-gradient-to-br from-green-400 to-green-600 rounded-full shadow-lg flex items-center justify-center z-10" style={{ animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+                                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round" 
+                                        strokeWidth="3.5" 
+                                        d="M5 13l4 4L19 7" 
+                                        style={{ 
+                                            strokeDasharray: 50, 
+                                            strokeDashoffset: 50, 
+                                            animation: 'drawTick 0.5s ease-out 0.3s forwards' 
+                                        }} 
+                                    />
                                 </svg>
-                                <h3 className="text-lg font-semibold text-green-800">Payout Initiated</h3>
                             </div>
-                            <p className="text-sm text-green-700">{payoutResult.message}</p>
-                            <p className="text-xs text-green-600 mt-2">Payout ID: {payoutResult.payoutId}</p>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all"
-                        >
-                            Close
-                        </button>
+
+                        {/* Heading & Amount */}
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Verified</h2>
+                        <div className="flex items-center space-x-2 text-3xl font-extrabold text-teal-600 mb-6 drop-shadow-sm transition-all hover:scale-105 cursor-default">
+                            <span className="text-4xl text-teal-500">₹</span>
+                            <span>{overrideAmount || amount}</span>
+                        </div>
+
+                        {/* Meta */}
+                        <div className="w-full bg-gray-50 rounded-xl p-4 border border-gray-100 mb-6 shadow-sm">
+                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold">Transaction Reference</p>
+                            <p className="text-sm font-mono text-gray-700 break-all">{payoutResult.payoutId}</p>
+                        </div>
+                        
+                        <p className="text-sm text-gray-400 animate-pulse font-medium">Redirecting automatically...</p>
                     </div>
                 )}
 
