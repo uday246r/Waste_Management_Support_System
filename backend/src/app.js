@@ -26,14 +26,16 @@ app.use(
          ];
          
          if (CLIENT_URL) {
-            // Support comma-separated URLs in CLIENT_URL
             allowedOrigins.push(...CLIENT_URL.split(',').map(url => url.trim()));
          }
 
+         // We avoid throwing an Error because that triggers an immediate 500 in Express,
+         // bypassing all our other middleware.
          if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
          } else {
-            callback(new Error("Not allowed by CORS"));
+            // Passing false gracefully rejects CORS without crashing the app with 500
+            callback(null, false);
          }
       },
       credentials: true,
@@ -89,6 +91,16 @@ app.use("/pickup", pickupRequestRouter);
 app.use("/messages", messageRouter);
 app.use("/payment", paymentRouter);
 // app.use("/api/gate", gateRouter);
+
+// Global Error Handler to catch any unexpected crashes and return JSON
+app.use((err, req, res, next) => {
+   console.error("Unhandled Global Error:", err);
+   res.status(500).json({
+      success: false,
+      message: "Internal Server Error (Caught by Global Handler)",
+      error: err.message,
+   });
+});
 
 const server = http.createServer(app);
 initalizedSocket(server);
