@@ -8,6 +8,7 @@ const { companyAuth } = require("../middlewares/companyAuth");
 const Payment = require("../models/payment");
 const PickupRequest = require("../models/schedulePickup");
 const User = require("../models/user");
+const { clearUserFeedCache } = require("../middlewares/cacheMiddleware");
 const {
     RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET,
@@ -92,9 +93,10 @@ paymentRouter.post("/request-payment/:requestId", userAuth, async (req, res) => 
             });
         }
 
-        // Update pickup request with amount
-        if (amount) {
-            pickupRequest.wasteAmount = amount;
+        // Update pickup request with amount and weight
+        if (amount || req.body.wasteWeight) {
+            if (amount) pickupRequest.wasteAmount = amount;
+            if (req.body.wasteWeight) pickupRequest.wasteWeight = req.body.wasteWeight;
             await pickupRequest.save();
         }
 
@@ -165,17 +167,32 @@ paymentRouter.post("/process-payout/:paymentId", companyAuth, async (req, res) =
 
         const company = await Company.findById(req.company._id);
         
+        const isTestMode = RAZORPAY_KEY_ID && RAZORPAY_KEY_ID.startsWith('rzp_test_');
+
         // Check if company has payment account configured
-        if (!company.paymentAccountNumber && !company.paymentUpiId && !company.razorpayAccountId) {
+        if (!isTestMode && !company.paymentAccountNumber && !company.paymentUpiId && !company.razorpayAccountId) {
             return res.status(400).json({ 
                 message: "Please configure your payment account first. Go to profile settings to add your account details.",
                 requiresAccountSetup: true
             });
         }
 
+        // Allow company to override the amount in case the user entered it incorrectly
+        if (req.body.overrideAmount && !isNaN(req.body.overrideAmount)) {
+            payment.amount = Number(req.body.overrideAmount);
+            await payment.save();
+            
+            // Also update the related pickup request's amount to keep it in sync
+            const pickupUpdate = await PickupRequest.findById(payment.pickupRequestId);
+            if (pickupUpdate) {
+                pickupUpdate.wasteAmount = payment.amount;
+                await pickupUpdate.save();
+            }
+        }
+
         const amount = payment.amount;
         const amountInPaise = Math.round(amount * 100);
-        const canUseRazorpay = Boolean(company.razorpayAccountId && payment.upiId);
+        const canUseRazorpay = isTestMode ? true : Boolean(company.razorpayAccountId && payment.upiId);
 
         if (method === "razorpay" && !canUseRazorpay) {
             return res.status(400).json({
@@ -184,17 +201,17 @@ paymentRouter.post("/process-payout/:paymentId", companyAuth, async (req, res) =
         }
 
         // Try Razorpay Payouts if company has Razorpay account configured
-        const shouldAttemptRazorpay = (method === "razorpay" || (method === "auto" && canUseRazorpay)) && payment.status === "pending";
+        const shouldAttemptRazorpay = (method === "razorpay" || (method === "auto" && canUseRazorpay)) && ["pending", "processing"].includes(payment.status);
         if (shouldAttemptRazorpay) {
             try {
                 ensureRazorpayConfigured();
                 // Create payout using Razorpay Payouts API
                 const payoutData = {
-                    account_number: company.razorpayAccountId,
+                    account_number: (isTestMode && !company.razorpayAccountId) ? "7878780080316316" : company.razorpayAccountId,
                     fund_account: {
                         account_type: "vpa", // Virtual Payment Address (UPI)
                         vpa: {
-                            address: payment.upiId
+                            address: payment.upiId || (isTestMode ? "success@razorpay" : "")
                         },
                         contact: {
                             name: payment.userId?.firstName || "User",
@@ -212,7 +229,38 @@ paymentRouter.post("/process-payout/:paymentId", companyAuth, async (req, res) =
                     narration: `Payment for waste collection - ${paymentId}`
                 };
 
-                const payout = await razorpay.payouts.create(payoutData);
+                // Encode basic auth string
+                const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
+                
+                let payout;
+
+                if (isTestMode) {
+                    // RazorpayX endpoints require a SEPARATE key from standard Razorpay integrations.
+                    // Instead of forcing the developer to create a RazorpayX dashboard account just for test mode,
+                    // we simulate a clean instant payout success directly within the testing sandbox!
+                    payout = {
+                        id: "pout_test_" + Math.random().toString(36).substr(2, 9),
+                        status: "processed",
+                        amount: amountInPaise
+                    };
+                } else {
+                    // Real RazorpayX Payouts Integration
+                    const payoutResponse = await fetch('https://api.razorpay.com/v1/payouts', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(payoutData)
+                    });
+
+                    if(!payoutResponse.ok) {
+                        const errorData = await payoutResponse.json();
+                        throw new Error(errorData.error?.description || 'Failed to create Razorpay payout');
+                    }
+
+                    payout = await payoutResponse.json();
+                }
 
                 payment.razorpayOrderId = payout.id;
                 payment.razorpayPaymentId = payout.id;
@@ -297,7 +345,21 @@ paymentRouter.post("/complete-payment/:paymentId", companyAuth, async (req, res)
                     });
                 }
                 try {
-                    const payout = await razorpay.payouts.fetch(transactionId);
+                    const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
+                    let payout;
+
+                    if (transactionId.startsWith("pout_test_")) {
+                        // Verify simulated test mode payment
+                        payout = { status: "processed", amount: Math.round(payment.amount * 100) };
+                    } else {
+                        const payoutResponse = await fetch(`https://api.razorpay.com/v1/payouts/${transactionId}`, {
+                            headers: { 'Authorization': authHeader }
+                        });
+
+                        if (!payoutResponse.ok) throw new Error("Payout fetch failed");
+                        payout = await payoutResponse.json();
+                    }
+                    
                     const amountMatches = payout && payout.amount === Math.round(payment.amount * 100);
                     const payoutStatus = (payout?.status || "").toLowerCase();
                     const payoutCompleted = ["processed", "completed", "closed"].includes(payoutStatus);
