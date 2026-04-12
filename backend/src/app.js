@@ -115,13 +115,20 @@ const startServer = async () => {
 
       await cacheRedisClient.connect();
       // console.log("Redis connection established....");
-
-      server.listen(PORT, () => {
-         console.log(`Server successfully running on port ${PORT}....`);
-      });
+      
+      // On Vercel, we don't start the server manually like this because Vercel handles it via serverless functions.
+      // But for local dev, we run `node src/app.js` and this will listen to the port.
+      if (process.env.NODE_ENV !== "production") {
+          server.listen(PORT, () => {
+             console.log(`Server successfully running on port ${PORT}....`);
+          });
+      }
    } catch (err) {
       console.log("Error starting server:", err);
    }
 };
 
 startServer();
+
+// Export the Express app as a Serverless Function for Vercel
+module.exports = app;
