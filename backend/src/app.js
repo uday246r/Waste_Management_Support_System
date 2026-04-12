@@ -19,7 +19,23 @@ app.set("trust proxy", 1);
 // Middlewares
 app.use(
    cors({
-      origin: CLIENT_URL, // frontend URL
+      origin: function (origin, callback) {
+         const allowedOrigins = [
+            "http://localhost:5173",
+            "https://wmss-uta.vercel.app"
+         ];
+         
+         if (CLIENT_URL) {
+            // Support comma-separated URLs in CLIENT_URL
+            allowedOrigins.push(...CLIENT_URL.split(',').map(url => url.trim()));
+         }
+
+         if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+         } else {
+            callback(new Error("Not allowed by CORS"));
+         }
+      },
       credentials: true,
       exposedHeaders: [
          "Retry-After",
