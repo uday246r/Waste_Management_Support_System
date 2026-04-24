@@ -21,8 +21,7 @@ const env = {
   GATE_ADMIN_EMAIL: process.env.GATE_ADMIN_EMAIL || "udaychauhan246r@gmail.com",
   SOCKET_ORIGIN:
     process.env.SOCKET_ORIGIN ||
-    process.env.CLIENT_URL ||
-    "http://localhost:5173",
+    (process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map(url => url.trim()) : ["http://localhost:5173", "http://127.0.0.1:5173", "https://wmss-uta.vercel.app"]),
   MONGO_URI: process.env.MONGO_URI,
   JWT_SECRET: process.env.JWT_SECRET,
   GLOBAL_RATE_LIMIT_ENABLED: process.env.GLOBAL_RATE_LIMIT_ENABLED === "true",
