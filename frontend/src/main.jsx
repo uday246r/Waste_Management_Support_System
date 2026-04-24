@@ -1,4 +1,4 @@
-import React,{ StrictMode } from 'react'
+import React, { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
@@ -48,6 +48,9 @@ function retryAfterSecondsFrom429(error) {
   return RATE_LIMIT_MODAL_DEFAULT_SECONDS;
 }
 
+// Global Axios Default
+axios.defaults.withCredentials = true;
+
 // Global Axios Interceptor for Rate Limiting (429) & Auth (401)
 axios.interceptors.response.use(
   (response) => response,
@@ -63,15 +66,15 @@ axios.interceptors.response.use(
         );
 
         window.dispatchEvent(
-          new CustomEvent('rate-limit-hit', { 
-            detail: { message, retryAfter } 
+          new CustomEvent('rate-limit-hit', {
+            detail: { message, retryAfter }
           })
         );
       } else if (error.response.status === 401) {
         // Handle unauthorized requests globally
-         if (window.location.pathname !== '/login' && window.location.pathname !== '/gate') {
-            window.location.href = '/login';
-         }
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/gate') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

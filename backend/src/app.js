@@ -4,6 +4,7 @@ const cors = require("cors");
 const http = require("http");
 const { initSocket } = require("./utils/socket");
 const connectDB = require("./config/database");
+const { cacheRedisClient } = require("./config/redis");
 const {
    CLIENT_URL,
    PORT,
@@ -15,6 +16,20 @@ const app = express();
 
 // Render / reverse proxies: trust X-Forwarded-For so req.ip is the real client (avoids one shared rate-limit bucket for everyone).
 app.set("trust proxy", 1);
+
+// Ensure DB and Redis are connected before processing requests (crucial for Vercel Serverless)
+app.use(async (req, res, next) => {
+   try {
+      await connectDB();
+      if (!cacheRedisClient.isOpen) {
+         await cacheRedisClient.connect();
+      }
+      next();
+   } catch (err) {
+      console.error("Connection Error in Middleware:", err);
+      next(err);
+   }
+});
 
 // Middlewares
 app.use(
@@ -107,14 +122,14 @@ const server = http.createServer(app);
 initalizedSocket(server);
 
 // Connect to DB and start server
-const { cacheRedisClient } = require("./config/redis");
-
 const startServer = async () => {
    try {
       await connectDB();
       console.log("Database connection established....");
 
-      await cacheRedisClient.connect();
+      if (!cacheRedisClient.isOpen) {
+         await cacheRedisClient.connect();
+      }
       // console.log("Redis connection established....");
       
       // On Vercel, we don't start the server manually like this because Vercel handles it via serverless functions.
